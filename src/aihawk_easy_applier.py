@@ -35,6 +35,7 @@ class AIHawkEasyApplier:
         self.gpt_answerer = gpt_answerer
         self.resume_generator_manager = resume_generator_manager
         self.all_data = self._load_questions_from_json()
+        self.current_job = None
 
         logger.debug("AIHawkEasyApplier initialized successfully")
 
@@ -125,6 +126,8 @@ class AIHawkEasyApplier:
             recruiter_link = self._get_job_recruiter()
             job.set_recruiter_link(recruiter_link)
             logger.debug(f"Recruiter link set: {recruiter_link}")
+
+            self.current_job = job
 
             logger.debug("Attempting to click 'Easy Apply' button")
             actions = ActionChains(self.driver)
@@ -232,7 +235,12 @@ class AIHawkEasyApplier:
             except NoSuchElementException:
                 logger.debug("See more button not found, skipping")
 
-            description = self.driver.find_element(By.CLASS_NAME, 'jobs-description-content__text').text
+            try:
+                description = self.driver.find_element(By.CLASS_NAME, 'jobs-description-content__text').text
+            except NoSuchElementException:
+                logger.debug("First class not found, checking for second class for premium members")
+                description = self.driver.find_element(By.CLASS_NAME, 'job-details-about-the-job-module__description').text
+
             logger.debug("Job description retrieved successfully")
             return description
         except NoSuchElementException:
@@ -830,6 +838,7 @@ class AIHawkEasyApplier:
     def _save_questions_to_json(self, question_data: dict) -> None:
         output_file = 'answers.json'
         question_data['question'] = self._sanitize_text(question_data['question'])
+
         logger.debug(f"Saving question data to JSON: {question_data}")
         try:
             try:
